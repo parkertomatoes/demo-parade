@@ -1,6 +1,6 @@
 # 2,629 Tiny Demos from Pouet, Running in the Browser
 
-This website is a gallery of tiny demos scraped from demoscene aggregator [pouet.net](https://pouet.net), all MS-DOS .COM files smaller than 1024 bytes, emulated in the browser for your casual enjoyment. Some are [stunning](?which=88198), some more [basic](?which=52630), some [interactive](?which=61245). Some are [weird](?which=4661), some [don't work](?which=63118), and others straight up [crash the emulator]().
+This website is a gallery of tiny demos scraped from demoscene aggregator [pouet.net](https://pouet.net), all MS-DOS .COM files smaller than 1024 bytes, emulated in the browser for your casual enjoyment. Some are [stunning](https://parkertomatoes.github.io/demo-parade/?which=88198), some more [basic](https://parkertomatoes.github.io/demo-parade/?which=52630), some [interactive](?which=61245). Some are [weird](https://parkertomatoes.github.io/demo-parade/?which=4661), some [don't work](https://parkertomatoes.github.io/demo-parade/?which=63118), and others straight up [crash the emulator](https://parkertomatoes.github.io/demo-parade/?which=62686).
 
 But there are a lot of gems in there, and it's all there to click around and enjoy without the hassle of loading them into an emulator.
 
@@ -89,12 +89,22 @@ _Psychodelic_. Refresh...
 
 This went on for an hour before I realized, this random demo should be the whole thing. I built a gallery with back, random forward buttons, the title of each demo, and a link back to the pouet page. An `<input>` with `<datalist>` served as a good enough search bar to look demos up by title.
 
+## Speeding Up The Boot Time
+
+V86 boots FreeDOS remarkably fast - in just a few seconds, vs. my memories of waiting a minute or two for the bootup screen to test the RAM and honk the floppy drive like a horn. But it would spike my dopamine a bit better if I didn't have to wait between clicks. 
+
+Luckily, v86 has a save state API which dumps and restores RAM. I rigged the website to save the state two seconds after the emulation started - just before startup finished. 
+
+The result is 8MB, which is big but will compress well with gzip. Now, right after starting emulation, it loads the save
+
 ## One Last Task - Attribution
 
 At this point, I realized there really needs to be a link on each demo to the author's page. So, I wrote one last script to augment the demo list with the author using the original data dump. But it turns out the "author" field is pretty complicated:
  * The demos can have one or more groups
  * The demos can have one or more people in "credits"
  * If nothing else, the demo has an uploader
+
+But, no matter what, someone gets credited now.
 
 ## Wrapping Up
 
