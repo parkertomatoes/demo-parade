@@ -1,0 +1,6 @@
+scripts/node_modules
+scripts/cache
+scripts/training
+scripts/pouetdatadump-*
+.DS_Store
+.vscode

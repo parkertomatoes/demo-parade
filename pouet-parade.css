@@ -1,0 +1,117 @@
+#screen_container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#screen {
+    white-space: pre;
+    position: relative;
+    font-family: Liberation Mono, DejaVu Sans Mono, Courier New, monospace;
+    font-weight: bold;
+    font-size: 15px;
+    line-height: normal;
+}
+
+#screen, #vga {
+    -webkit-transform-origin: top left;
+    -moz-transform-origin: top left;
+    transform-origin: top left;
+}
+
+#vga {
+    background-color: #000;
+    touch-action: none;
+}
+
+/* Nav bar */
+
+nav .demoInfo {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1em;
+}
+
+nav .demoName {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+nav .demoInfo span, nav .demoInfo a {
+    font-size: small;
+}
+
+nav .demoInfo span {
+    margin-right: 0.5em;
+    padding-right: 0.5em;
+}
+
+nav ul {
+    margin: 0 0 1.5em 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+nav ul li {
+    list-style-type: none;
+}
+
+nav ul button {
+    width: 2em;
+    height: 2em;
+    margin: 0.5em;
+}
+
+nav input.demoShare {
+    margin-bottom: 0;
+    width: 100%;
+    padding: 1em 1em 1em 3em;
+    background-size: 1.5em;
+    background-position: 0.75em center;
+    background-repeat: no-repeat;
+}
+
+nav img {
+    margin: 0 0.5em;
+    width: 1.5em;
+    height: auto;
+    filter: invert(1);
+}
+
+nav .demoSearch input {
+    margin-bottom: 0;
+    width: 100%;
+    padding: 1em 1em 1em 3em;
+    background-size: 1.5em;
+    background-position: 0.75em center;
+    background-repeat: no-repeat;
+}
+
+@media (prefers-color-scheme: dark) {
+    nav .demoSearch input {
+        background-image: url('images/search-white.svg');
+    }
+    nav input.demoShare {
+        background-image: url('images/link-white.png');
+    }
+    nav .demoInfo span {
+        border-right: white 1px solid;
+    }    
+}
+@media (prefers-color-scheme: light) {
+    nav .demoSearch input {
+        background-image: url('images/search.svg');
+    }
+    nav input.demoShare {
+        background-image: url('images/link.png');
+    }
+    nav .demoInfo span {
+        border-right: black 1px solid;
+    }
+}

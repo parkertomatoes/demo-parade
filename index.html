@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="pouet-parade.css">
+        <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+        <link rel="preload" href="demos/demos.json" as="fetch" crossorigin="anonymous">
+        <link rel="preload" href="image/freedos.img" as="fetch" crossorigin="anonymous">
+        <link rel="preload" href="image/v86state.bin" as="fetch" crossorigin="anonymous">
+        <title>Pouet Demo Parade</title>
+    </head>
+    <body>
+        <header>
+            <h1>Pouet Demo Parade</h1>
+        </header>
+        <main>
+            <div id="screen_container">
+                <div id="screen"></div>
+                <canvas id="vga"></canvas>
+            </div>
+            <nav>
+                <div class="demoInfo">
+                    <h4 class="demoName">Demo Name</h4>
+                    <span class="demoAuthor">by Author</span>
+                    <span class="demoSize">256 bytes</span>
+                    <a href="#" class="demoLink">prod page</a>
+                </div>
+                <ul>
+                    <li><a href="#" class="demoPrev"><button type="button" title="Previous Demo">←</button></a></li>
+                    <li><a href="." class="demoRand"><button type="button" title="Random Demo">?</button></a></li>
+                    <li><a href="#" class="demoNext"><button type="button" title="Next Demo">→</button></a></li>
+                    <li class="demoSearch">
+                        <input title="Demo Name" list="demoNameList" value="">
+                        <datalist id="demoNameList">
+                        </datalist>
+                    </li>
+                </ul>
+                <input value="" title="Link to share the demo" class="demoShare" readonly />
+            </nav>
+        </main>
+        <footer>
+            This site is non-commercial and not affiliated with Pouet or any demo authors. 
+            <br>
+            If you are an author and would like your demo removed, please file a Github issue.
+            <br>
+            Powered by <a href="https://copy.sh/v86/">v86</a> and many creators' hard work.
+        </footer>
+        <script src="v86/libv86.js"></script>
+        <script src="pouet-parade.js"></script>
+    </body>
+</html>

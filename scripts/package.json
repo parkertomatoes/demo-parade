@@ -1,0 +1,19 @@
+{
+  "name": "pouet",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "7zip-min": "^1.4.4",
+    "tmp-promise": "^3.0.3"
+  },
+  "devDependencies": {
+    "@bokuweb/zstd-wasm": "^0.0.20",
+    "cli-progress": "^3.12.0"
+  }
+}
