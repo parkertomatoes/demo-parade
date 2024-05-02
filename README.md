@@ -110,7 +110,7 @@ But, no matter what, someone gets credited now.
 
 I'm unreasonably happy with this throwaway project - I'm Pygmalion over here. Staring at a random parade of tiny demos is incredibly hypnotic and beautiful. 
 
-Not all the demos work well, many have palette issues and some trigger illegal opcode errors. But this has actually help me find a few issues to improve v86. 
+Not all the demos work well, many have palette issues and some trigger illegal opcode errors. But this has actually help me find a few [issues](https://github.com/copy/v86/issues/1027) to improve v86. 
 
 Copyright is reserved by the creators. Legally, I consider this site an archive, like [demozoo](https://demozoo.org/), or [scene.org](https://scene.org/), or [youtube]() which already host all these demos. Its new purpose is to help you discover, appreciate, and learn more about forgotten, somewhat modest, but still extremely cool old demos.
 
