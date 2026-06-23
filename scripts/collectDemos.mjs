@@ -15,7 +15,7 @@ function logMessage(message) {
     console.warn(`    ${message}`);
 }
 
-const file = await fs.readFile('pouetdatadump-prods-20240403.json');
+const file = await fs.readFile('pouetdatadump-prods-20260617.json');
 const data = JSON.parse(file);
 const candidates = data.prods.filter(isTinyDosDemo)//.filter(_ => _.id === '96536');
 const result = [];

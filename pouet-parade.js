@@ -40,7 +40,7 @@ async function start(config) {
     }
     if (!demo)
         demo = demos[(Math.random() * demos.length) | 0];
-    const contentUrl = `data:application/octet-binary;base64,${demo.content}`;
+    const contentUrl = `data:application/octet-stream;base64,${demo.content}`;
     const contentResponse = await fetch(contentUrl);
     const content = new Uint8Array(await contentResponse.arrayBuffer());
     dosImg.set(content, 0x26000);

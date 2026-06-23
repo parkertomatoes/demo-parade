@@ -1,5 +1,4 @@
-;(function(){'use strict';
-const $LOG_NAMES$$module$src$const$$ = [[1, ""], [2, "CPU"], [32768, "DISK"], [4, "FPU"], [8, "MEM"], [16, "DMA"], [32, "IO"], [64, "PS2"], [128, "PIC"], [256, "VGA"], [512, "PIT"], [1024, "MOUS"], [2048, "PCI"], [4096, "BIOS"], [8192, "FLOP"], [16384, "SERI"], [65536, "RTC"], [262144, "ACPI"], [524288, "APIC"], [1048576, "NET"], [2097152, "VIO"], [4194304, "9P"], [8388608, "SB16"], [16777216, "FETC"], [33554432, "MODM"], ];
+;let module = {exports:{}}; const $LOG_NAMES$$module$src$const$$ = [[1, ""], [2, "CPU"], [32768, "DISK"], [4, "FPU"], [8, "MEM"], [16, "DMA"], [32, "IO"], [64, "PS2"], [128, "PIC"], [256, "VGA"], [512, "PIT"], [1024, "MOUS"], [2048, "PCI"], [4096, "BIOS"], [8192, "FLOP"], [16384, "SERI"], [65536, "RTC"], [262144, "ACPI"], [524288, "APIC"], [1048576, "NET"], [2097152, "VIO"], [4194304, "9P"], [8388608, "SB16"], [16777216, "FETC"], [33554432, "MODM"], ];
 function $pads$$module$src$lib$$($str$jscomp$6$$, $len$$) {
   return ($str$jscomp$6$$ || 0 === $str$jscomp$6$$ ? $str$jscomp$6$$ + "" : "").padEnd($len$$, " ");
 }
@@ -268,7 +267,7 @@ $CHARMAPS$$module$src$lib$$.ascii = $CHARMAPS$$module$src$lib$$.cp437.split("").
 function $get_charmap$$module$src$lib$$($encoding$jscomp$3$$) {
   return $encoding$jscomp$3$$ && $CHARMAPS$$module$src$lib$$[$encoding$jscomp$3$$] ? $CHARMAPS$$module$src$lib$$[$encoding$jscomp$3$$] : $CHARMAPS$$module$src$lib$$.cp437;
 }
-;var $LOG_LEVEL$$module$src$log$$ = -15786961;
+var $LOG_LEVEL$$module$src$log$$ = -15786961;
 const $dbg_log$$module$src$log$$ = function() {
   const $dbg_names$$ = $LOG_NAMES$$module$src$const$$.reduce(function($a$jscomp$2$$, $x$jscomp$94$$) {
     $a$jscomp$2$$[$x$jscomp$94$$[0]] = $x$jscomp$94$$[1];
@@ -300,7 +299,7 @@ function $dbg_assert$$module$src$log$$($cond$$, $msg$$) {
     throw "Assert failed";
   }
 }
-;function $ScreenAdapter$$module$src$browser$screen$$($options$jscomp$36$$, $screen_fill_buffer$$) {
+function $ScreenAdapter$$module$src$browser$screen$$($options$jscomp$36$$, $screen_fill_buffer$$) {
   function $number_as_color$$($n$jscomp$4$$) {
     $n$jscomp$4$$ = $n$jscomp$4$$.toString(16);
     return "#" + "0".repeat(6 - $n$jscomp$4$$.length) + $n$jscomp$4$$;
@@ -624,7 +623,7 @@ function $dbg_assert$$module$src$log$$($cond$$, $msg$$) {
   };
   this.init();
 }
-;function $SyncBuffer$$module$src$buffer$$($buffer$jscomp$19$$) {
+function $SyncBuffer$$module$src$buffer$$($buffer$jscomp$19$$) {
   $dbg_assert$$module$src$log$$($buffer$jscomp$19$$ instanceof ArrayBuffer);
   this.buffer = $buffer$jscomp$19$$;
   this.byteLength = $buffer$jscomp$19$$.byteLength;
@@ -900,7 +899,7 @@ function $buffer_from_object$$module$src$buffer$$($obj$jscomp$26$$, $is_async_zs
   }
   $dbg_log$$module$src$log$$("Ignored file: url=" + $obj$jscomp$26$$.url + " buffer=" + $obj$jscomp$26$$.buffer);
 }
-;function $DMA$$module$src$dma$$($cpu_io$$) {
+function $DMA$$module$src$dma$$($cpu_io$$) {
   this.cpu = $cpu_io$$;
   this.channel_page = new Uint8Array(8);
   this.channel_pagehi = new Uint8Array(8);
@@ -2157,7 +2156,7 @@ $SB16$$module$src$sb16$$.prototype.lower_irq = function($type$jscomp$149$$) {
 function $audio_clip$$module$src$sb16$$($value$jscomp$125$$, $low$$, $high$$) {
   return ($value$jscomp$125$$ < $low$$) * $low$$ + ($value$jscomp$125$$ > $high$$) * $high$$ + ($low$$ <= $value$jscomp$125$$ && $value$jscomp$125$$ <= $high$$) * $value$jscomp$125$$;
 }
-;function $StateLoadError$$module$src$state$$($msg$jscomp$2$$) {
+function $StateLoadError$$module$src$state$$($msg$jscomp$2$$) {
   this.message = $msg$jscomp$2$$;
 }
 $StateLoadError$$module$src$state$$.prototype = Error();
@@ -2286,7 +2285,7 @@ function $restore_state$$module$src$state$$($cpu$jscomp$5$$, $state$jscomp$9$$) 
     $cpu$jscomp$5$$.set_state($buffer_info_info_block_buffer$jscomp$2_state_object$jscomp$1$$);
   }
 }
-;function $print_instruction_counts_offset$$module$src$browser$print_stats$$($cpu$jscomp$9_total$$, $compiled_per_opcode0f_prefixes$$, $jit_exit_per_opcode$$, $max_count_pad_length_unguarded_register$$, $i$jscomp$31_wasm_size$$) {
+function $print_instruction_counts_offset$$module$src$browser$print_stats$$($cpu$jscomp$9_total$$, $compiled_per_opcode0f_prefixes$$, $jit_exit_per_opcode$$, $max_count_pad_length_unguarded_register$$, $i$jscomp$31_wasm_size$$) {
   let $text$jscomp$12$$ = "";
   var $counts_opcode_description_top_counts$$ = [], $i$jscomp$32_label$jscomp$9$$ = $compiled_per_opcode0f_prefixes$$ ? "compiled" : $jit_exit_per_opcode$$ ? "jit exit" : $max_count_pad_length_unguarded_register$$ ? "unguarded register" : $i$jscomp$31_wasm_size$$ ? "wasm size" : "executed";
   for (let $opcode$$ = 0; 256 > $opcode$$; $opcode$$++) {
@@ -2331,7 +2330,7 @@ function $restore_state$$module$src$state$$($cpu$jscomp$5$$, $state$jscomp$9$$) 
   }
   return $text$jscomp$12$$ + "\n";
 }
-;function $RTC$$module$src$rtc$$($cpu$jscomp$10$$) {
+function $RTC$$module$src$rtc$$($cpu$jscomp$10$$) {
   this.cpu = $cpu$jscomp$10$$;
   this.cmos_index = 0;
   this.cmos_data = new Uint8Array(128);
@@ -4261,7 +4260,7 @@ function $KeyboardAdapter$$module$src$browser$keyboard$$($bus$jscomp$10$$) {
     $code$jscomp$2$$ in $asciimap$$ ? this.simulate_press($asciimap$$[$code$jscomp$2$$]) : $code$jscomp$2$$ in $asciimap_shift$$ ? ($send_to_controller$$(42), this.simulate_press($asciimap_shift$$[$code$jscomp$2$$]), $send_to_controller$$(170)) : console.log("ascii -> keyCode not found: ", $code$jscomp$2$$, $chr$jscomp$3$$);
   };
 }
-;function $MouseAdapter$$module$src$browser$mouse$$($bus$jscomp$11$$, $screen_container$jscomp$1$$) {
+function $MouseAdapter$$module$src$browser$mouse$$($bus$jscomp$11$$, $screen_container$jscomp$1$$) {
   function $pointerlockchange_handler$$() {
     $mouse$$.bus.send("mouse-pointer-lock", !!document.pointerLockElement);
   }
@@ -4355,7 +4354,7 @@ function $KeyboardAdapter$$module$src$browser$keyboard$$($bus$jscomp$10$$) {
   };
   this.init();
 }
-;function $DummyScreenAdapter$$module$src$browser$dummy_screen$$($options$jscomp$42$$) {
+function $DummyScreenAdapter$$module$src$browser$dummy_screen$$($options$jscomp$42$$) {
   var $text_mode_data$jscomp$1$$, $text_mode_width$jscomp$1$$ = 0, $text_mode_height$jscomp$1$$ = 0, $charmap$jscomp$2$$ = $get_charmap$$module$src$lib$$($options$jscomp$42$$?.encoding);
   this.put_char = function($row$jscomp$4$$, $col$jscomp$2$$, $chr$jscomp$4$$) {
     $dbg_assert$$module$src$log$$(0 <= $row$jscomp$4$$ && $row$jscomp$4$$ < $text_mode_height$jscomp$1$$);
@@ -4406,7 +4405,7 @@ function $KeyboardAdapter$$module$src$browser$keyboard$$($bus$jscomp$10$$) {
   };
   this.set_size_text(80, 25);
 }
-;function $ANSIScreenAdapter$$module$src$browser$ansi_screen$$($options$jscomp$43$$) {
+function $ANSIScreenAdapter$$module$src$browser$ansi_screen$$($options$jscomp$43$$) {
   var $text_mode_data$jscomp$2$$, $text_mode_width$jscomp$2$$ = 0, $text_mode_height$jscomp$2$$ = 0, $charmap$jscomp$3$$ = $get_charmap$$module$src$lib$$($options$jscomp$43$$?.encoding);
   this.put_char = function($p$jscomp$1_row$jscomp$6$$, $col$jscomp$4$$, $chr$jscomp$6$$, $blinking$jscomp$2$$, $bg_color$jscomp$4$$, $fg_color$jscomp$4$$) {
     $dbg_assert$$module$src$log$$(0 <= $p$jscomp$1_row$jscomp$6$$ && $p$jscomp$1_row$jscomp$6$$ < $text_mode_height$jscomp$2$$);
@@ -4467,7 +4466,7 @@ function $KeyboardAdapter$$module$src$browser$keyboard$$($bus$jscomp$10$$) {
   };
   this.set_size_text(80, 25);
 }
-;function $TextAreaAdapter$$module$src$browser$serial$$($element$jscomp$8$$) {
+function $TextAreaAdapter$$module$src$browser$serial$$($element$jscomp$8$$) {
   function $keypress_handler$$($e$jscomp$37$$) {
     $serial$$.enabled && ($serial$$.send_char($e$jscomp$37$$.which), $e$jscomp$37$$.preventDefault());
   }
@@ -5083,7 +5082,7 @@ function $Unmarshall$$module$lib$marshall$$($typelist$jscomp$1$$, $struct$jscomp
   $state$jscomp$16$$.offset = $offset$jscomp$56$$;
   return $output$jscomp$2$$;
 }
-;const $texten$$module$lib$filesystem$$ = new TextEncoder;
+const $texten$$module$lib$filesystem$$ = new TextEncoder;
 function $FS$$module$lib$filesystem$$($storage$$, $qidcounter$$) {
   this.inodes = [];
   this.storage = $storage$$;
@@ -6729,7 +6728,7 @@ if ("object" === typeof performance && performance.now) {
     } : Date.now;
   }
 }
-;function $ACPI$$module$src$acpi$$($cpu$jscomp$14$$) {
+function $ACPI$$module$src$acpi$$($cpu$jscomp$14$$) {
   this.cpu = $cpu$jscomp$14$$;
   var $io$jscomp$1$$ = $cpu$jscomp$14$$.io;
   $cpu$jscomp$14$$.devices.pci.register_device({pci_id:56, pci_space:[134, 128, 19, 113, 7, 0, 128, 2, 8, 0, 128, 6, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 1, 0, 0, ], pci_bars:[], name:"acpi", });
@@ -8303,7 +8302,7 @@ function $read_structs$$module$src$elf$$($view$jscomp$31$$, $Struct$jscomp$1$$, 
   }
   return [$result$jscomp$18$$, $offset$jscomp$71$$];
 }
-;const $CMOS_FDD_TYPE_MEDIUM$$module$src$floppy$$ = {[0]:0, [1]:525, [2]:525, [3]:350, [4]:350, [5]:350, };
+const $CMOS_FDD_TYPE_MEDIUM$$module$src$floppy$$ = {[0]:0, [1]:525, [2]:525, [3]:350, [4]:350, [5]:350, };
 function $FloppyController$$module$src$floppy$$($cpu$jscomp$21$$, $fda_image$$, $fdb_image$$, $fdc_config$$) {
   this.io = $cpu$jscomp$21$$.io;
   this.cpu = $cpu$jscomp$21$$;
@@ -11170,7 +11169,7 @@ function $load_kernel$$module$src$kernel$$($data8$jscomp$inline_162_mem8$$, $bzi
     }
   }
 }
-;function $CPU$$module$src$cpu$$($bus$jscomp$30$$, $memory$jscomp$1_wm$$, $stop_idling$$) {
+function $CPU$$module$src$cpu$$($bus$jscomp$30$$, $memory$jscomp$1_wm$$, $stop_idling$$) {
   this.stop_idling = $stop_idling$$;
   this.wm = $memory$jscomp$1_wm$$;
   this.wasm_patch();
@@ -13353,4 +13352,5 @@ $Virtio9pProxy$$module$lib$9p$$.prototype.change_proxy = function($url$jscomp$29
   }, this.socket.onerror = function() {
   }, this.socket.close(), this.socket = void 0);
 };
-}).call(this);
+export{};
+; export default module.exports.V86; export let {V86, CPU} = module.exports;

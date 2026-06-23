@@ -93,6 +93,26 @@ nav .demoSearch input {
     background-repeat: no-repeat;
 }
 
+.catalogIntro {
+    margin: 0 0 1.25rem 0;
+}
+
+.catalogGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem 1rem;
+    align-items: start;
+}
+
+.catalogGrid a {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.pageLinks {
+    margin-top: 1rem;
+}
+
 @media (prefers-color-scheme: dark) {
     nav .demoSearch input {
         background-image: url('images/search-white.svg');
@@ -113,5 +133,17 @@ nav .demoSearch input {
     }
     nav .demoInfo span {
         border-right: black 1px solid;
+    }
+}
+
+@media (max-width: 900px) {
+    .catalogGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .catalogGrid {
+        grid-template-columns: 1fr;
     }
 }

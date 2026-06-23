@@ -3,7 +3,7 @@ import * as fs from 'fs/promises'
 const demosText = await fs.readFile('../demos/demos.json');
 const demos = JSON.parse(demosText);
 
-const pouetText = await fs.readFile('pouetdatadump-prods-20240403.json');
+const pouetText = await fs.readFile('pouetdatadump-prods-20260617.json');
 const pouet = JSON.parse(pouetText);
 
 for (const demo of demos) {
