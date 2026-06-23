@@ -7,6 +7,7 @@ async function start(config) {
         biosUrl,
         vgaBiosUrl,
         stateUrl,
+        wasmUrl,
         which
     } = config;
 
@@ -138,10 +139,16 @@ async function start(config) {
         initial_state: {
             url: stateUrl
         },
+        wasm_path: wasmUrl,
         autostart: true
     };
 
-    const emulator = new V86Starter(v86Config);
+    const Emulator = window.V86 || window.V86Starter;
+    if (!Emulator) {
+        throw new Error('v86 failed to load');
+    }
+
+    const emulator = new Emulator(v86Config);
     return emulator;
 }
 
@@ -156,5 +163,6 @@ start({
     biosUrl: 'bios/bochs-bios.bin',
     vgaBiosUrl: 'bios/bochs-vgabios.bin',
     stateUrl: 'image/v86state.bin',
+    wasmUrl: 'v86/v86.wasm',
     which
 });
