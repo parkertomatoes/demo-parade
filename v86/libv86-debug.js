@@ -9853,12 +9853,6 @@ $VirtioNet$$module$src$virtio_net$$.prototype.Ack = function($queue_id$jscomp$11
   this.virtio.queues[$queue_id$jscomp$11$$].flush_replies();
 };
 const $VGA_HOST_MEMORY_SPACE_START$$module$src$vga$$ = Uint32Array.from([655360, 655360, 720896, 753664, ]), $VGA_HOST_MEMORY_SPACE_SIZE$$module$src$vga$$ = Uint32Array.from([131072, 65536, 32768, 32768, ]);
-function $dac_pack_cursor$$module$src$vga$$($byte_index$jscomp$2$$) {
-  return (($byte_index$jscomp$2$$ / 3 | 0) & 255) << 2 | $byte_index$jscomp$2$$ % 3;
-}
-function $dac_unpack_cursor$$module$src$vga$$($cursor$$) {
-  return 3 * ($cursor$$ >> 2 & 255) + ($cursor$$ & 3);
-}
 function $VGAScreen$$module$src$vga$$($cpu$jscomp$25$$, $bus$jscomp$28_io$jscomp$4$$, $screen$jscomp$4_vga_offset$$, $vga_memory_size$$) {
   this.cpu = $cpu$jscomp$25$$;
   this.bus = $bus$jscomp$28_io$jscomp$4$$;
@@ -9920,7 +9914,7 @@ function $VGAScreen$$module$src$vga$$($cpu$jscomp$25$$, $bus$jscomp$28_io$jscomp
   $bus$jscomp$28_io$jscomp$4$$.register_write(966, this, this.port3C6_write);
   $bus$jscomp$28_io$jscomp$4$$.register_write(967, this, this.port3C7_write);
   $bus$jscomp$28_io$jscomp$4$$.register_read(967, this, this.port3C7_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(968, this, this.port3C8_write);
+  $bus$jscomp$28_io$jscomp$4$$.register_write(968, this, this.port3C8_write, this.port3C8_write16);
   $bus$jscomp$28_io$jscomp$4$$.register_read(968, this, this.port3C8_read);
   $bus$jscomp$28_io$jscomp$4$$.register_write(969, this, this.port3C9_write);
   $bus$jscomp$28_io$jscomp$4$$.register_read(969, this, this.port3C9_read);
@@ -9985,8 +9979,8 @@ $VGAScreen$$module$src$vga$$.prototype.get_state = function() {
   $state$jscomp$53$$[20] = this.svga_bank_offset;
   $state$jscomp$53$$[21] = this.svga_offset;
   $state$jscomp$53$$[22] = this.index_crtc;
-  $state$jscomp$53$$[23] = $dac_unpack_cursor$$module$src$vga$$(this.dac_color_index_write);
-  $state$jscomp$53$$[24] = $dac_unpack_cursor$$module$src$vga$$(this.dac_color_index_read);
+  $state$jscomp$53$$[23] = this.dac_color_index_write;
+  $state$jscomp$53$$[24] = this.dac_color_index_read;
   $state$jscomp$53$$[25] = this.dac_map;
   $state$jscomp$53$$[26] = this.sequencer_index;
   $state$jscomp$53$$[27] = this.plane_write_bm;
@@ -10052,8 +10046,8 @@ $VGAScreen$$module$src$vga$$.prototype.set_state = function($state$jscomp$54$$) 
   this.svga_bank_offset = $state$jscomp$54$$[20];
   this.svga_offset = $state$jscomp$54$$[21];
   this.index_crtc = $state$jscomp$54$$[22];
-  this.dac_color_index_write = $dac_pack_cursor$$module$src$vga$$($state$jscomp$54$$[23]);
-  this.dac_color_index_read = $dac_pack_cursor$$module$src$vga$$($state$jscomp$54$$[24]);
+  this.dac_color_index_write = $state$jscomp$54$$[23];
+  this.dac_color_index_read = $state$jscomp$54$$[24];
   this.dac_map = $state$jscomp$54$$[25];
   this.sequencer_index = $state$jscomp$54$$[26];
   this.plane_write_bm = $state$jscomp$54$$[27];
@@ -10521,21 +10515,25 @@ $VGAScreen$$module$src$vga$$.prototype.port3C6_read = function() {
 };
 $VGAScreen$$module$src$vga$$.prototype.port3C7_write = function($index$jscomp$84$$) {
   $dbg_log$$module$src$log$$("3C7 write: " + $h$$module$src$lib$$($index$jscomp$84$$), 256);
-  this.dac_color_index_read = ($index$jscomp$84$$ & 255) << 2;
+  this.dac_color_index_read = 3 * $index$jscomp$84$$;
   this.dac_state &= 0;
 };
 $VGAScreen$$module$src$vga$$.prototype.port3C7_read = function() {
   return this.dac_state;
 };
 $VGAScreen$$module$src$vga$$.prototype.port3C8_write = function($index$jscomp$85$$) {
-  this.dac_color_index_write = ($index$jscomp$85$$ & 255) << 2;
+  this.dac_color_index_write = 3 * ($index$jscomp$85$$ & 255);
   this.dac_state |= 3;
 };
+$VGAScreen$$module$src$vga$$.prototype.port3C8_write16 = function($data$jscomp$222$$) {
+  this.port3C8_write($data$jscomp$222$$ & 255);
+  this.port3C9_write($data$jscomp$222$$ >> 8 & 255);
+};
 $VGAScreen$$module$src$vga$$.prototype.port3C8_read = function() {
-  return this.dac_color_index_write >> 2 & 255;
+  return this.dac_color_index_write / 3 & 255;
 };
 $VGAScreen$$module$src$vga$$.prototype.port3C9_write = function($color_byte$$) {
-  var $index$jscomp$86$$ = this.dac_color_index_write >> 2 & 255, $offset$jscomp$77$$ = this.dac_color_index_write & 3, $color$jscomp$5$$ = this.vga256_palette[$index$jscomp$86$$];
+  var $index$jscomp$86$$ = this.dac_color_index_write / 3 & 255, $offset$jscomp$77$$ = this.dac_color_index_write % 3, $color$jscomp$5$$ = this.vga256_palette[$index$jscomp$86$$];
   if (0 === (this.dispi_enable_value & 32)) {
     $color_byte$$ &= 63;
     const $b$jscomp$2$$ = $color_byte$$ & 1;
@@ -10543,12 +10541,12 @@ $VGAScreen$$module$src$vga$$.prototype.port3C9_write = function($color_byte$$) {
   }
   0 === $offset$jscomp$77$$ ? $color$jscomp$5$$ = $color$jscomp$5$$ & -16711681 | $color_byte$$ << 16 : 1 === $offset$jscomp$77$$ ? $color$jscomp$5$$ = $color$jscomp$5$$ & -65281 | $color_byte$$ << 8 : ($color$jscomp$5$$ = $color$jscomp$5$$ & -256 | $color_byte$$, $dbg_log$$module$src$log$$("dac set color, index=" + $h$$module$src$lib$$($index$jscomp$86$$) + " value=" + $h$$module$src$lib$$($color$jscomp$5$$), 256));
   this.vga256_palette[$index$jscomp$86$$] !== $color$jscomp$5$$ && (this.vga256_palette[$index$jscomp$86$$] = $color$jscomp$5$$, this.complete_redraw());
-  this.dac_color_index_write = this.dac_color_index_write + (2 === $offset$jscomp$77$$ ? 2 : 1) & 1023;
+  this.dac_color_index_write = (this.dac_color_index_write + 1) % 768;
 };
 $VGAScreen$$module$src$vga$$.prototype.port3C9_read = function() {
   $dbg_log$$module$src$log$$("3C9 read", 256);
-  var $offset$jscomp$78$$ = this.dac_color_index_read & 3, $color8$$ = this.vga256_palette[this.dac_color_index_read >> 2 & 255] >> 8 * (2 - $offset$jscomp$78$$) & 255;
-  this.dac_color_index_read = this.dac_color_index_read + (2 === $offset$jscomp$78$$ ? 2 : 1) & 1023;
+  var $color8$$ = this.vga256_palette[this.dac_color_index_read / 3 & 255] >> 8 * (2 - this.dac_color_index_read % 3) & 255;
+  this.dac_color_index_read = (this.dac_color_index_read + 1) % 768;
   return this.dispi_enable_value & 32 ? $color8$$ : $color8$$ >> 2;
 };
 $VGAScreen$$module$src$vga$$.prototype.port3CC_read = function() {
@@ -11072,10 +11070,10 @@ $VirtioBalloon$$module$src$virtio_balloon$$.prototype.set_state = function($stat
   this.num_pages = $state$jscomp$56$$[1];
   this.actual = $state$jscomp$56$$[2];
 };
-$VirtioBalloon$$module$src$virtio_balloon$$.prototype.GetStats = function($data$jscomp$225_queue$jscomp$10$$) {
-  this.stats_cb = $data$jscomp$225_queue$jscomp$10$$;
-  for ($data$jscomp$225_queue$jscomp$10$$ = this.virtio.queues[2]; $data$jscomp$225_queue$jscomp$10$$.has_request();) {
-    const $bufchain$jscomp$16$$ = $data$jscomp$225_queue$jscomp$10$$.pop_request();
+$VirtioBalloon$$module$src$virtio_balloon$$.prototype.GetStats = function($data$jscomp$226_queue$jscomp$10$$) {
+  this.stats_cb = $data$jscomp$226_queue$jscomp$10$$;
+  for ($data$jscomp$226_queue$jscomp$10$$ = this.virtio.queues[2]; $data$jscomp$226_queue$jscomp$10$$.has_request();) {
+    const $bufchain$jscomp$16$$ = $data$jscomp$226_queue$jscomp$10$$.pop_request();
     this.virtio.queues[2].push_reply($bufchain$jscomp$16$$);
   }
   this.virtio.queues[2].flush_replies();
@@ -11762,9 +11760,9 @@ $CPU$$module$src$cpu$$.prototype.init = function($option_rom$jscomp$1_settings$j
                   const $buffer8$$ = new Uint8Array($buffer32_value$jscomp$187$$.buffer);
                   $buffer32_value$jscomp$187$$[0] = $to_be32$$(this.option_roms.length);
                   for (let $i$jscomp$99$$ = 0; $i$jscomp$99$$ < this.option_roms.length; $i$jscomp$99$$++) {
-                    const {name:$name$jscomp$108$$, data:$data$jscomp$226$$} = this.option_roms[$i$jscomp$99$$], $file_struct_ptr$$ = 4 + 64 * $i$jscomp$99$$;
+                    const {name:$name$jscomp$108$$, data:$data$jscomp$227$$} = this.option_roms[$i$jscomp$99$$], $file_struct_ptr$$ = 4 + 64 * $i$jscomp$99$$;
                     $dbg_assert$$module$src$log$$(65536 > 49152 + $i$jscomp$99$$);
-                    $buffer32_value$jscomp$187$$[$file_struct_ptr$$ + 0 >> 2] = $to_be32$$($data$jscomp$226$$.length);
+                    $buffer32_value$jscomp$187$$[$file_struct_ptr$$ + 0 >> 2] = $to_be32$$($data$jscomp$227$$.length);
                     $buffer32_value$jscomp$187$$[$file_struct_ptr$$ + 4 >> 2] = $to_be16$$(49152 + $i$jscomp$99$$);
                     $dbg_assert$$module$src$log$$(56 > $name$jscomp$108$$.length);
                     for (let $j$jscomp$11$$ = 0; $j$jscomp$11$$ < $name$jscomp$108$$.length; $j$jscomp$11$$++) {
@@ -11998,8 +11996,8 @@ $CPU$$module$src$cpu$$.prototype.load_bios = function() {
   var $bios$$ = this.bios.main, $vga_bios$$ = this.bios.vga;
   if ($bios$$) {
     $dbg_assert$$module$src$log$$($bios$$ instanceof ArrayBuffer);
-    var $data$jscomp$227$$ = new Uint8Array($bios$$);
-    this.write_blob($data$jscomp$227$$, 1048576 - $bios$$.byteLength);
+    var $data$jscomp$228$$ = new Uint8Array($bios$$);
+    this.write_blob($data$jscomp$228$$, 1048576 - $bios$$.byteLength);
     if ($vga_bios$$) {
       $dbg_assert$$module$src$log$$($vga_bios$$ instanceof ArrayBuffer);
       var $vga_bios8$$ = new Uint8Array($vga_bios$$);
@@ -12267,57 +12265,57 @@ function $VirtIO$$module$src$virtio$$($cpu$jscomp$28$$, $options$jscomp$48$$) {
   this.reset();
 }
 $VirtIO$$module$src$virtio$$.prototype.create_common_capability = function($options$jscomp$49$$) {
-  return {type:1, bar:0, port:$options$jscomp$49$$.initial_port, use_mmio:!1, offset:0, extra:new Uint8Array(0), struct:[{bytes:4, name:"device_feature_select", read:() => this.device_feature_select, write:$data$jscomp$228$$ => {
-    this.device_feature_select = $data$jscomp$228$$;
+  return {type:1, bar:0, port:$options$jscomp$49$$.initial_port, use_mmio:!1, offset:0, extra:new Uint8Array(0), struct:[{bytes:4, name:"device_feature_select", read:() => this.device_feature_select, write:$data$jscomp$229$$ => {
+    this.device_feature_select = $data$jscomp$229$$;
   }, }, {bytes:4, name:"device_feature", read:() => this.device_feature[this.device_feature_select] || 0, write:() => {
-  }, }, {bytes:4, name:"driver_feature_select", read:() => this.driver_feature_select, write:$data$jscomp$230$$ => {
-    this.driver_feature_select = $data$jscomp$230$$;
-  }, }, {bytes:4, name:"driver_feature", read:() => this.driver_feature[this.driver_feature_select] || 0, write:$data$jscomp$231$$ => {
+  }, }, {bytes:4, name:"driver_feature_select", read:() => this.driver_feature_select, write:$data$jscomp$231$$ => {
+    this.driver_feature_select = $data$jscomp$231$$;
+  }, }, {bytes:4, name:"driver_feature", read:() => this.driver_feature[this.driver_feature_select] || 0, write:$data$jscomp$232$$ => {
     const $supported_feature$$ = this.device_feature[this.driver_feature_select];
-    this.driver_feature_select < this.driver_feature.length && (this.driver_feature[this.driver_feature_select] = $data$jscomp$231$$ & $supported_feature$$);
-    this.features_ok = this.features_ok && !($data$jscomp$231$$ & ~$supported_feature$$);
+    this.driver_feature_select < this.driver_feature.length && (this.driver_feature[this.driver_feature_select] = $data$jscomp$232$$ & $supported_feature$$);
+    this.features_ok = this.features_ok && !($data$jscomp$232$$ & ~$supported_feature$$);
   }, }, {bytes:2, name:"msix_config", read:() => {
     $dbg_log$$module$src$log$$("No msi-x capability supported.", 2097152);
     return 65535;
   }, write:() => {
     $dbg_log$$module$src$log$$("No msi-x capability supported.", 2097152);
   }, }, {bytes:2, name:"num_queues", read:() => this.queues.length, write:() => {
-  }, }, {bytes:1, name:"device_status", read:() => this.device_status, write:$data$jscomp$234$$ => {
-    0 === $data$jscomp$234$$ ? ($dbg_log$$module$src$log$$("Reset device<" + this.name + ">", 2097152), this.reset()) : $data$jscomp$234$$ & 128 ? $dbg_log$$module$src$log$$("Warning: Device<" + this.name + "> status failed", 2097152) : $dbg_log$$module$src$log$$("Device<" + this.name + "> status: " + ($data$jscomp$234$$ & 1 ? "ACKNOWLEDGE " : "") + ($data$jscomp$234$$ & 2 ? "DRIVER " : "") + ($data$jscomp$234$$ & 4 ? "DRIVER_OK" : "") + ($data$jscomp$234$$ & 8 ? "FEATURES_OK " : "") + ($data$jscomp$234$$ & 
+  }, }, {bytes:1, name:"device_status", read:() => this.device_status, write:$data$jscomp$235$$ => {
+    0 === $data$jscomp$235$$ ? ($dbg_log$$module$src$log$$("Reset device<" + this.name + ">", 2097152), this.reset()) : $data$jscomp$235$$ & 128 ? $dbg_log$$module$src$log$$("Warning: Device<" + this.name + "> status failed", 2097152) : $dbg_log$$module$src$log$$("Device<" + this.name + "> status: " + ($data$jscomp$235$$ & 1 ? "ACKNOWLEDGE " : "") + ($data$jscomp$235$$ & 2 ? "DRIVER " : "") + ($data$jscomp$235$$ & 4 ? "DRIVER_OK" : "") + ($data$jscomp$235$$ & 8 ? "FEATURES_OK " : "") + ($data$jscomp$235$$ & 
     64 ? "DEVICE_NEEDS_RESET" : ""), 2097152);
-    $data$jscomp$234$$ & ~this.device_status & 4 && this.device_status & 64 && this.notify_config_changes();
-    this.features_ok || ($data$jscomp$234$$ & 8 && $dbg_log$$module$src$log$$("Removing FEATURES_OK", 2097152), $data$jscomp$234$$ &= -9);
-    this.device_status = $data$jscomp$234$$;
-    if ($data$jscomp$234$$ & ~this.device_status & 4) {
+    $data$jscomp$235$$ & ~this.device_status & 4 && this.device_status & 64 && this.notify_config_changes();
+    this.features_ok || ($data$jscomp$235$$ & 8 && $dbg_log$$module$src$log$$("Removing FEATURES_OK", 2097152), $data$jscomp$235$$ &= -9);
+    this.device_status = $data$jscomp$235$$;
+    if ($data$jscomp$235$$ & ~this.device_status & 4) {
       $options$jscomp$49$$.on_driver_ok();
     }
   }, }, {bytes:1, name:"config_generation", read:() => this.config_generation, write:() => {
-  }, }, {bytes:2, name:"queue_select", read:() => this.queue_select, write:$data$jscomp$236$$ => {
-    this.queue_select = $data$jscomp$236$$;
+  }, }, {bytes:2, name:"queue_select", read:() => this.queue_select, write:$data$jscomp$237$$ => {
+    this.queue_select = $data$jscomp$237$$;
     this.queue_selected = this.queue_select < this.queues.length ? this.queues[this.queue_select] : null;
-  }, }, {bytes:2, name:"queue_size", read:() => this.queue_selected ? this.queue_selected.size : 0, write:$data$jscomp$237$$ => {
-    this.queue_selected && ($data$jscomp$237$$ & $data$jscomp$237$$ - 1 && ($dbg_log$$module$src$log$$("Warning: dev<" + this.name + "> Given queue size was not a power of 2. Rounding up to next power of 2.", 2097152), $data$jscomp$237$$ = 1 << $int_log2$$module$src$lib$$($data$jscomp$237$$ - 1) + 1), $data$jscomp$237$$ > this.queue_selected.size_supported && ($dbg_log$$module$src$log$$("Warning: dev<" + this.name + "> Trying to set queue size greater than supported. Clamping to supported size.", 
-    2097152), $data$jscomp$237$$ = this.queue_selected.size_supported), this.queue_selected.set_size($data$jscomp$237$$));
+  }, }, {bytes:2, name:"queue_size", read:() => this.queue_selected ? this.queue_selected.size : 0, write:$data$jscomp$238$$ => {
+    this.queue_selected && ($data$jscomp$238$$ & $data$jscomp$238$$ - 1 && ($dbg_log$$module$src$log$$("Warning: dev<" + this.name + "> Given queue size was not a power of 2. Rounding up to next power of 2.", 2097152), $data$jscomp$238$$ = 1 << $int_log2$$module$src$lib$$($data$jscomp$238$$ - 1) + 1), $data$jscomp$238$$ > this.queue_selected.size_supported && ($dbg_log$$module$src$log$$("Warning: dev<" + this.name + "> Trying to set queue size greater than supported. Clamping to supported size.", 
+    2097152), $data$jscomp$238$$ = this.queue_selected.size_supported), this.queue_selected.set_size($data$jscomp$238$$));
   }, }, {bytes:2, name:"queue_msix_vector", read:() => {
     $dbg_log$$module$src$log$$("No msi-x capability supported.", 2097152);
     return 65535;
   }, write:() => {
     $dbg_log$$module$src$log$$("No msi-x capability supported.", 2097152);
-  }, }, {bytes:2, name:"queue_enable", read:() => this.queue_selected ? this.queue_selected.enabled | 0 : 0, write:$data$jscomp$239$$ => {
-    this.queue_selected && (1 === $data$jscomp$239$$ ? this.queue_selected.is_configured() ? this.queue_selected.enable() : $dbg_log$$module$src$log$$("Driver bug: tried enabling unconfigured queue", 2097152) : 0 === $data$jscomp$239$$ && $dbg_log$$module$src$log$$("Driver bug: tried writing 0 to queue_enable", 2097152));
+  }, }, {bytes:2, name:"queue_enable", read:() => this.queue_selected ? this.queue_selected.enabled | 0 : 0, write:$data$jscomp$240$$ => {
+    this.queue_selected && (1 === $data$jscomp$240$$ ? this.queue_selected.is_configured() ? this.queue_selected.enable() : $dbg_log$$module$src$log$$("Driver bug: tried enabling unconfigured queue", 2097152) : 0 === $data$jscomp$240$$ && $dbg_log$$module$src$log$$("Driver bug: tried writing 0 to queue_enable", 2097152));
   }, }, {bytes:2, name:"queue_notify_off", read:() => this.queue_selected ? this.queue_selected.notify_offset : 0, write:() => {
-  }, }, {bytes:4, name:"queue_desc (low dword)", read:() => this.queue_selected ? this.queue_selected.desc_addr : 0, write:$data$jscomp$241$$ => {
-    this.queue_selected && (this.queue_selected.desc_addr = $data$jscomp$241$$);
-  }, }, {bytes:4, name:"queue_desc (high dword)", read:() => 0, write:$data$jscomp$242$$ => {
-    0 !== $data$jscomp$242$$ && $dbg_log$$module$src$log$$("Warning: High dword of 64 bit queue_desc ignored:" + $data$jscomp$242$$, 2097152);
-  }, }, {bytes:4, name:"queue_avail (low dword)", read:() => this.queue_selected ? this.queue_selected.avail_addr : 0, write:$data$jscomp$243$$ => {
-    this.queue_selected && (this.queue_selected.avail_addr = $data$jscomp$243$$);
-  }, }, {bytes:4, name:"queue_avail (high dword)", read:() => 0, write:$data$jscomp$244$$ => {
-    0 !== $data$jscomp$244$$ && $dbg_log$$module$src$log$$("Warning: High dword of 64 bit queue_avail ignored:" + $data$jscomp$244$$, 2097152);
-  }, }, {bytes:4, name:"queue_used (low dword)", read:() => this.queue_selected ? this.queue_selected.used_addr : 0, write:$data$jscomp$245$$ => {
-    this.queue_selected && (this.queue_selected.used_addr = $data$jscomp$245$$);
-  }, }, {bytes:4, name:"queue_used (high dword)", read:() => 0, write:$data$jscomp$246$$ => {
-    0 !== $data$jscomp$246$$ && $dbg_log$$module$src$log$$("Warning: High dword of 64 bit queue_used ignored:" + $data$jscomp$246$$, 2097152);
+  }, }, {bytes:4, name:"queue_desc (low dword)", read:() => this.queue_selected ? this.queue_selected.desc_addr : 0, write:$data$jscomp$242$$ => {
+    this.queue_selected && (this.queue_selected.desc_addr = $data$jscomp$242$$);
+  }, }, {bytes:4, name:"queue_desc (high dword)", read:() => 0, write:$data$jscomp$243$$ => {
+    0 !== $data$jscomp$243$$ && $dbg_log$$module$src$log$$("Warning: High dword of 64 bit queue_desc ignored:" + $data$jscomp$243$$, 2097152);
+  }, }, {bytes:4, name:"queue_avail (low dword)", read:() => this.queue_selected ? this.queue_selected.avail_addr : 0, write:$data$jscomp$244$$ => {
+    this.queue_selected && (this.queue_selected.avail_addr = $data$jscomp$244$$);
+  }, }, {bytes:4, name:"queue_avail (high dword)", read:() => 0, write:$data$jscomp$245$$ => {
+    0 !== $data$jscomp$245$$ && $dbg_log$$module$src$log$$("Warning: High dword of 64 bit queue_avail ignored:" + $data$jscomp$245$$, 2097152);
+  }, }, {bytes:4, name:"queue_used (low dword)", read:() => this.queue_selected ? this.queue_selected.used_addr : 0, write:$data$jscomp$246$$ => {
+    this.queue_selected && (this.queue_selected.used_addr = $data$jscomp$246$$);
+  }, }, {bytes:4, name:"queue_used (high dword)", read:() => 0, write:$data$jscomp$247$$ => {
+    0 !== $data$jscomp$247$$ && $dbg_log$$module$src$log$$("Warning: High dword of 64 bit queue_used ignored:" + $data$jscomp$247$$, 2097152);
   }, }, ], };
 };
 $VirtIO$$module$src$virtio$$.prototype.create_notification_capability = function($options$jscomp$50$$) {
@@ -12389,9 +12387,9 @@ $VirtIO$$module$src$virtio$$.prototype.init_capabilities = function($cap_len$jsc
         $dbg_log$$module$src$log$$("Device<" + this.name + "> cap[" + $cap$jscomp$2$$.type + "] read[" + $field$jscomp$1$$.name + "] => " + $h$$module$src$lib$$($val$jscomp$2$$, 8 * $field$jscomp$1$$.bytes), 2097152);
         return $val$jscomp$2$$;
       };
-      $cap_len$jscomp$1_capabilities$jscomp$1_write$$ = $data$jscomp$249$$ => {
-        $dbg_log$$module$src$log$$("Device<" + this.name + "> cap[" + $cap$jscomp$2$$.type + "] write[" + $field$jscomp$1$$.name + "] <= " + $h$$module$src$lib$$($data$jscomp$249$$, 8 * $field$jscomp$1$$.bytes), 2097152);
-        $field$jscomp$1$$.write($data$jscomp$249$$);
+      $cap_len$jscomp$1_capabilities$jscomp$1_write$$ = $data$jscomp$250$$ => {
+        $dbg_log$$module$src$log$$("Device<" + this.name + "> cap[" + $cap$jscomp$2$$.type + "] write[" + $field$jscomp$1$$.name + "] <= " + $h$$module$src$lib$$($data$jscomp$250$$, 8 * $field$jscomp$1$$.bytes), 2097152);
+        $field$jscomp$1$$.write($data$jscomp$250$$);
       };
       if ($cap$jscomp$2$$.use_mmio) {
         $dbg_assert$$module$src$log$$(!1, "VirtIO device <" + this.name + "> mmio capability not implemented.");
@@ -12828,41 +12826,41 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
   switch($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$) {
     case 8:
       var $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.GetTotalSize();
-      var $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = this.fs.GetSpace(), $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = [16914839];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] = this.BLOCKSIZE;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] = Math.floor($lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ / $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3] = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] - Math.floor($fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ / $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4] = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] - Math.floor($fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ / $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5] = this.fs.CountUsedInodes();
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6] = this.fs.CountFreeInodes();
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[7] = 0;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[8] = 256;
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $Marshall$$module$lib$marshall$$("wwddddddw".split(""), $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, this.replybuffer, 7);
+      var $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = this.fs.GetSpace(), $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = [16914839];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] = this.BLOCKSIZE;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] = Math.floor($lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ / $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3] = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] - Math.floor($fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ / $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4] = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] - Math.floor($fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ / $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5] = this.fs.CountUsedInodes();
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6] = this.fs.CountFreeInodes();
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[7] = 0;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[8] = 256;
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $Marshall$$module$lib$marshall$$("wwddddddw".split(""), $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 112:
     case 12:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $dbg_log$$module$src$log$$("[open] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$, 4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid;
       var $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $dbg_log$$module$src$log$$("file open " + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " tag:" + $header$jscomp$6_tag$jscomp$3$$, 4194304);
       await this.fs.OpenInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = [];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.qid;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] = this.msize - 24;
-      $Marshall$$module$lib$marshall$$(["Q", "w"], $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, this.replybuffer, 7);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = [];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.qid;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] = this.msize - 24;
+      $Marshall$$module$lib$marshall$$(["Q", "w"], $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 17);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 70:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
       $dbg_log$$module$src$log$$("[link] dfid=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, 4194304);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Link(this.fids[$buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$].inodeid, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
       if (0 > $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$) {
@@ -12875,41 +12873,41 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 16:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $dbg_log$$module$src$log$$("[symlink] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", symgt=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", gid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $dbg_log$$module$src$log$$("[symlink] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", symgt=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", gid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.CreateSymlink($lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid;
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
       $Marshall$$module$lib$marshall$$(["Q"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.qid], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 13);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 18:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wswwww".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wswwww".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5];
       $dbg_log$$module$src$log$$("[mknod] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", major=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", minor=" + $inode$jscomp$35_minor$jscomp$1_nwfid$$, 4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.CreateNode($lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $inode$jscomp$35_minor$jscomp$1_nwfid$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid;
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
       $Marshall$$module$lib$marshall$$(["Q"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.qid], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 13);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 22:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       $dbg_log$$module$src$log$$("[readlink] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " target=" + $inode$jscomp$35_minor$jscomp$1_nwfid$$.symlink, 4194304);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $Marshall$$module$lib$marshall$$(["s"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.symlink], this.replybuffer, 7);
@@ -12917,30 +12915,30 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 72:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $dbg_log$$module$src$log$$("[mkdir] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + ", gid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $dbg_log$$module$src$log$$("[mkdir] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + ", gid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.CreateDirectory($lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ | 16384;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid;
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
       $Marshall$$module$lib$marshall$$(["Q"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.qid], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 13);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 14:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
       this.bus.send("9p-create", [$lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid]);
-      $dbg_log$$module$src$log$$("[create] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + ", gid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 
+      $dbg_log$$module$src$log$$("[create] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + ", gid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 
       4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.CreateFile($lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid = $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$;
@@ -12948,90 +12946,90 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name = $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid;
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ | 32768;
       $Marshall$$module$lib$marshall$$(["Q", "w"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.qid, this.msize - 24], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 17);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 52:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbwddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 0 === $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4] ? Infinity : $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fs.DescribeLock($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3], $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5], 
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6]);
-      $dbg_log$$module$src$log$$("[lock] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", type=" + $P9_LOCK_TYPES$$module$lib$9p$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.type] + ", start=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.start + ", length=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.length + 
-      ", proc_id=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.proc_id);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Lock(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbwddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 0 === $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4] ? Infinity : $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fs.DescribeLock($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3], $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5], 
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6]);
+      $dbg_log$$module$src$log$$("[lock] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", type=" + $P9_LOCK_TYPES$$module$lib$9p$$[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.type] + ", start=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.start + ", length=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.length + 
+      ", proc_id=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.proc_id);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Lock(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $Marshall$$module$lib$marshall$$(["b"], [$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 1);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 54:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 0 === $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3] ? Infinity : $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fs.DescribeLock($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2], $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4], 
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5]);
-      $dbg_log$$module$src$log$$("[getlock] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", type=" + $P9_LOCK_TYPES$$module$lib$9p$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.type] + ", start=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.start + ", length=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.length + 
-      ", proc_id=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.proc_id);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.GetLock(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ || ($fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.type = 2);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 0 === $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3] ? Infinity : $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fs.DescribeLock($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2], $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4], 
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5]);
+      $dbg_log$$module$src$log$$("[getlock] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", type=" + $P9_LOCK_TYPES$$module$lib$9p$$[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.type] + ", start=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.start + ", length=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.length + 
+      ", proc_id=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$.proc_id);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.GetLock(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ || ($fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.type = 2);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $Marshall$$module$lib$marshall$$(["b", "d", "d", "w", "s"], [$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.type, $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.start, Infinity === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.length ? 0 : $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.length, $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.proc_id, 
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$.client_id], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 24:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
-      $dbg_log$$module$src$log$$("[getattr]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " request mask=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], 4194304);
+      $dbg_log$$module$src$log$$("[getattr]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " request mask=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], 4194304);
       if (!$inode$jscomp$35_minor$jscomp$1_nwfid$$ || 4 === $inode$jscomp$35_minor$jscomp$1_nwfid$$.status) {
         $dbg_log$$module$src$log$$("getattr: unlinked", 4194304);
         this.SendError($header$jscomp$6_tag$jscomp$3$$, "No such file or directory", 2);
         this.SendReply($bufchain$jscomp$21$$);
         break;
       }
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.qid;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.nlinks;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.major << 8 | $inode$jscomp$35_minor$jscomp$1_nwfid$$.minor;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[7] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.size;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[8] = this.BLOCKSIZE;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[9] = Math.floor($inode$jscomp$35_minor$jscomp$1_nwfid$$.size / 512 + 1);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[10] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.atime;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[11] = 0;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[12] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.mtime;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[13] = 0;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[14] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.ctime;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[15] = 0;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[16] = 0;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[17] = 0;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[18] = 0;
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[19] = 0;
-      $Marshall$$module$lib$marshall$$("dQwwwddddddddddddddd".split(""), $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, this.replybuffer, 7);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.qid;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.nlinks;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.major << 8 | $inode$jscomp$35_minor$jscomp$1_nwfid$$.minor;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[7] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.size;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[8] = this.BLOCKSIZE;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[9] = Math.floor($inode$jscomp$35_minor$jscomp$1_nwfid$$.size / 512 + 1);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[10] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.atime;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[11] = 0;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[12] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.mtime;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[13] = 0;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[14] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.ctime;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[15] = 0;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[16] = 0;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[17] = 0;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[18] = 0;
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[19] = 0;
+      $Marshall$$module$lib$marshall$$("dQwwwddddddddddddddd".split(""), $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 153);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 26:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wwwwwddddd".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wwwwwddddd".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
-      $dbg_log$$module$src$log$$("[setattr]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " request mask=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name, 4194304);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 1 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 2 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 4 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 16 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.atime = Math.floor((new Date).getTime() / 1000));
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 32 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.mtime = Math.floor((new Date).getTime() / 1000));
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 64 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.ctime = Math.floor((new Date).getTime() / 1000));
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 128 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.atime = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 256 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.mtime = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[8]);
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 8 && await this.fs.ChangeSize(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5]);
+      $dbg_log$$module$src$log$$("[setattr]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " request mask=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name, 4194304);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 1 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 2 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 4 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 16 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.atime = Math.floor((new Date).getTime() / 1000));
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 32 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.mtime = Math.floor((new Date).getTime() / 1000));
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 64 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.ctime = Math.floor((new Date).getTime() / 1000));
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 128 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.atime = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[6]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 256 && ($inode$jscomp$35_minor$jscomp$1_nwfid$$.mtime = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[8]);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] & 8 && await this.fs.ChangeSize(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5]);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 0);
       this.SendReply($bufchain$jscomp$21$$);
       break;
@@ -13042,10 +13040,10 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       break;
     case 40:
     case 116:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      var $count$jscomp$71_nwname$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      var $count$jscomp$71_nwname$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       40 === $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ && $dbg_log$$module$src$log$$("[treaddir]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " offset=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " count=" + $count$jscomp$71_nwname$$, 4194304);
       116 === $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ && $dbg_log$$module$src$log$$("[read]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " (" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + ") offset=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " count=" + $count$jscomp$71_nwname$$ + " fidtype=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].type, 
@@ -13057,28 +13055,28 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
         break;
       }
       if (2 === this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].type) {
-        for ($inode$jscomp$35_minor$jscomp$1_nwfid$$.caps.length < $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + $count$jscomp$71_nwname$$ && ($count$jscomp$71_nwname$$ = $inode$jscomp$35_minor$jscomp$1_nwfid$$.caps.length - $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$), $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < 
-        $count$jscomp$71_nwname$$; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
-          this.replybuffer[11 + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.caps[$lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$];
+        for ($inode$jscomp$35_minor$jscomp$1_nwfid$$.caps.length < $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + $count$jscomp$71_nwname$$ && ($count$jscomp$71_nwname$$ = $inode$jscomp$35_minor$jscomp$1_nwfid$$.caps.length - $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$), $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < 
+        $count$jscomp$71_nwname$$; $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
+          this.replybuffer[11 + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.caps[$lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$];
         }
       } else {
-        await this.fs.OpenInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, void 0), $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $count$jscomp$71_nwname$$ = Math.min($count$jscomp$71_nwname$$, this.replybuffer.length - 11), $inode$jscomp$35_minor$jscomp$1_nwfid$$.size < $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + 
-        $count$jscomp$71_nwname$$ ? $count$jscomp$71_nwname$$ = $inode$jscomp$35_minor$jscomp$1_nwfid$$.size - $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ : 40 === $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ && ($count$jscomp$71_nwname$$ = this.fs.RoundToDirentry($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + 
-        $count$jscomp$71_nwname$$) - $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$), $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ > $inode$jscomp$35_minor$jscomp$1_nwfid$$.size && ($count$jscomp$71_nwname$$ = 0), this.bus.send("9p-read-start", [this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name]), $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 
-        await this.fs.Read($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $count$jscomp$71_nwname$$), this.bus.send("9p-read-end", [this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name, $count$jscomp$71_nwname$$]), $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ && 
-        this.replybuffer.set($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 11);
+        await this.fs.OpenInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, void 0), $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $count$jscomp$71_nwname$$ = Math.min($count$jscomp$71_nwname$$, this.replybuffer.length - 11), $inode$jscomp$35_minor$jscomp$1_nwfid$$.size < $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + 
+        $count$jscomp$71_nwname$$ ? $count$jscomp$71_nwname$$ = $inode$jscomp$35_minor$jscomp$1_nwfid$$.size - $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ : 40 === $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ && ($count$jscomp$71_nwname$$ = this.fs.RoundToDirentry($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + 
+        $count$jscomp$71_nwname$$) - $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$), $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ > $inode$jscomp$35_minor$jscomp$1_nwfid$$.size && ($count$jscomp$71_nwname$$ = 0), this.bus.send("9p-read-start", [this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name]), $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 
+        await this.fs.Read($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $count$jscomp$71_nwname$$), this.bus.send("9p-read-end", [this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name, $count$jscomp$71_nwname$$]), $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ && 
+        this.replybuffer.set($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 11);
       }
       $Marshall$$module$lib$marshall$$(["w"], [$count$jscomp$71_nwname$$], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 4 + $count$jscomp$71_nwname$$);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 118:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $count$jscomp$71_nwname$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name;
-      $dbg_log$$module$src$log$$("[write]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " (" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ + ") offset=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " count=" + $count$jscomp$71_nwname$$ + " fidtype=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].type, 4194304);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $count$jscomp$71_nwname$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name;
+      $dbg_log$$module$src$log$$("[write]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " (" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ + ") offset=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " count=" + $count$jscomp$71_nwname$$ + " fidtype=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].type, 4194304);
       if (2 === this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].type) {
         this.SendError($header$jscomp$6_tag$jscomp$3$$, "Setxattr not supported", 95);
         this.SendReply($bufchain$jscomp$21$$);
@@ -13086,19 +13084,19 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       } else {
         await this.fs.Write(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $count$jscomp$71_nwname$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$.subarray($attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$.offset));
       }
-      this.bus.send("9p-write-end", [$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $count$jscomp$71_nwname$$]);
+      this.bus.send("9p-write-end", [$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $count$jscomp$71_nwname$$]);
       $Marshall$$module$lib$marshall$$(["w"], [$count$jscomp$71_nwname$$], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 4);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 74:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $dbg_log$$module$src$log$$("[renameat]: oldname=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " newname=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = await this.fs.Rename(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$].inodeid, $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $dbg_log$$module$src$log$$("[renameat]: oldname=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " newname=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = await this.fs.Rename(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$].inodeid, $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$);
       if (0 > $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$) {
         -2 === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ ? $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = "No such file or directory" : -1 === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ ? $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = "Operation not permitted" : -39 === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ ? $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = 
         "Directory not empty" : ($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = "Unknown error: " + -$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$, $dbg_assert$$module$src$log$$(!1, "[renameat]: Unexpected error code: " + -$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$));
@@ -13110,10 +13108,10 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 76:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
       $dbg_log$$module$src$log$$("[unlink]: dirfd=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + " name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 4194304);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Search(this.fids[$attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
       if (-1 === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$) {
@@ -13141,10 +13139,10 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 104:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
-      $dbg_log$$module$src$log$$("[attach]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " afid=" + $h$$module$src$lib$$($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]) + " uname=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] + " aname=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3], 
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
+      $dbg_log$$module$src$log$$("[attach]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " afid=" + $h$$module$src$lib$$($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]) + " uname=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] + " aname=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3], 
       4194304);
       this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$] = this.Createfid(0, 1, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, "");
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
@@ -13160,11 +13158,11 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 110:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $count$jscomp$71_nwname$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $dbg_log$$module$src$log$$("[walk]: fid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] + " nwfid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " nwname=" + $count$jscomp$71_nwname$$, 4194304);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $count$jscomp$71_nwname$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $dbg_log$$module$src$log$$("[walk]: fid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] + " nwfid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " nwname=" + $count$jscomp$71_nwname$$, 4194304);
       if (0 === $count$jscomp$71_nwname$$) {
         this.fids[$inode$jscomp$35_minor$jscomp$1_nwfid$$] = this.Createfid(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, 1, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name);
         $Marshall$$module$lib$marshall$$(["h"], [0], this.replybuffer, 7);
@@ -13173,7 +13171,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
         break;
       }
       $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = [];
-      for ($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < $count$jscomp$71_nwname$$; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
+      for ($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < $count$jscomp$71_nwname$$; $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
         $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$.push("s");
       }
       $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $Unmarshall$$module$lib$marshall$$($lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
@@ -13181,42 +13179,42 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 9;
       var $nwidx$$ = 0;
       $dbg_log$$module$src$log$$("walk in dir " + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " to: " + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$.toString(), 4194304);
-      for ($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < $count$jscomp$71_nwname$$; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
-        $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.Search($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
+      for ($data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < $count$jscomp$71_nwname$$; $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
+        $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.Search($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
         if (-1 === $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$) {
-          $dbg_log$$module$src$log$$("Could not find: " + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$], 4194304);
+          $dbg_log$$module$src$log$$("Could not find: " + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$], 4194304);
           break;
         }
         $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ += $Marshall$$module$lib$marshall$$(["Q"], [this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$).qid], this.replybuffer, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
         $nwidx$$++;
-        this.fids[$inode$jscomp$35_minor$jscomp$1_nwfid$$] = this.Createfid($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 1, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
+        this.fids[$inode$jscomp$35_minor$jscomp$1_nwfid$$] = this.Createfid($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 1, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
       }
       $Marshall$$module$lib$marshall$$(["h"], [$nwidx$$], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ - 7);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 120:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $dbg_log$$module$src$log$$("[clunk]: fid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0], 4194304);
-      this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]] && 0 <= this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid && (await this.fs.CloseInode(this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid), this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid = 
-      -1, this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].type = -1);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $dbg_log$$module$src$log$$("[clunk]: fid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0], 4194304);
+      this.fids[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]] && 0 <= this.fids[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid && (await this.fs.CloseInode(this.fids[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid), this.fids[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid = 
+      -1, this.fids[$data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].type = -1);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 0);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 32:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
       $dbg_log$$module$src$log$$("[txattrcreate]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + $lock_length_name$jscomp$109_offset$jscomp$85_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " attr_size=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + " flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 4194304);
       this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].type = 2;
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 0);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 30:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $dbg_log$$module$src$log$$("[xattrwalk]: fid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] + " newfid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " name=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2], 4194304);
+      $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $dbg_log$$module$src$log$$("[xattrwalk]: fid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] + " newfid=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " name=" + $data$jscomp$253_filename$jscomp$13_gid_i$jscomp$124_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2], 4194304);
       this.SendError($header$jscomp$6_tag$jscomp$3$$, "Setxattr not supported", 95);
       this.SendReply($bufchain$jscomp$21$$);
       break;
@@ -13344,8 +13342,8 @@ $Virtio9pProxy$$module$lib$9p$$.prototype.connect = function() {
     }
   }
 };
-$Virtio9pProxy$$module$lib$9p$$.prototype.send = function($data$jscomp$253$$) {
-  this.socket && 1 === this.socket.readyState ? this.socket.send($data$jscomp$253$$) : (this.send_queue.push($data$jscomp$253$$), this.send_queue.length > 2 * this.send_queue_limit && (this.send_queue = this.send_queue.slice(-this.send_queue_limit)), this.connect());
+$Virtio9pProxy$$module$lib$9p$$.prototype.send = function($data$jscomp$254$$) {
+  this.socket && 1 === this.socket.readyState ? this.socket.send($data$jscomp$254$$) : (this.send_queue.push($data$jscomp$254$$), this.send_queue.length > 2 * this.send_queue_limit && (this.send_queue = this.send_queue.slice(-this.send_queue_limit)), this.connect());
 };
 $Virtio9pProxy$$module$lib$9p$$.prototype.change_proxy = function($url$jscomp$29$$) {
   this.url = $url$jscomp$29$$;
