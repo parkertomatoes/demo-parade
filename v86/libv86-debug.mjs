@@ -7080,11 +7080,8 @@ $PCI$$module$src$pci$$.prototype.set_state = function($state$jscomp$33$$) {
     var $device$jscomp$4$$ = this.devices[$i$jscomp$78$$], $space$$ = $state$jscomp$33$$[$i$jscomp$78$$];
     if ($device$jscomp$4$$ && $space$$) {
       for (var $bar_nr$$ = 0; $bar_nr$$ < $device$jscomp$4$$.pci_bars.length; $bar_nr$$++) {
-        var $value$jscomp$161$$ = $space$$[4 + $bar_nr$$];
-        if ($value$jscomp$161$$ & 1) {
-          var $bar$$ = $device$jscomp$4$$.pci_bars[$bar_nr$$];
-          this.set_io_bars($bar$$, $bar$$.original_bar & 65534, $value$jscomp$161$$ & 65534);
-        }
+        var $value$jscomp$161$$ = $space$$[4 + $bar_nr$$], $bar$$ = $device$jscomp$4$$.pci_bars[$bar_nr$$];
+        $bar$$ && $value$jscomp$161$$ & 1 && this.set_io_bars($bar$$, $bar$$.original_bar & 65534, $value$jscomp$161$$ & 65534);
       }
       this.device_spaces[$i$jscomp$78$$].set($space$$);
     } else {

@@ -8,7 +8,8 @@ async function start(config) {
         vgaBiosUrl,
         stateUrl,
         wasmUrl,
-        which
+        which,
+        download
     } = config;
 
     const elements = {
@@ -45,6 +46,11 @@ async function start(config) {
     const contentResponse = await fetch(contentUrl);
     const content = new Uint8Array(await contentResponse.arrayBuffer());
     dosImg.set(content, 0x26000);
+    if (download === 'img') {
+        downloadBytes(dosImg, `demo-${demo.id}.img`);
+    } else if (download === 'com') {
+        downloadBytes(content, `demo-${demo.id}.com`);
+    }
 
     // Fill in links
     elements.nameLabel.innerText = demo.name;
@@ -86,17 +92,6 @@ async function start(config) {
     const shareUrl = `${location.href.split('?')[0]}?which=${demo.id}`
     elements.shareLink.value = shareUrl;
 
-    // for debugging - use to download image
-    /*
-    if (window.location.search.includes("download")) {
-        const blob=new Blob([dosImg], {type: "application/octet-stream"});
-        const link=document.createElement('a');
-        link.href=window.URL.createObjectURL(blob);
-        link.download="demo.img";
-        link.click();
-    }
-    */
-
     // Add search fields
     const df = document.createDocumentFragment();
     for (const demo of demos) {
@@ -126,7 +121,6 @@ async function start(config) {
 
     // Start emulator
     const v86Config = {
-        screen_container: screen,
         bios: {
             url: biosUrl,
         },
@@ -140,20 +134,40 @@ async function start(config) {
             url: stateUrl
         },
         wasm_path: wasmUrl,
-        autostart: true
+        autostart: true,
+        screen: {
+            container: screen,
+            use_graphical_text: true
+        }
     };
-
     const Emulator = window.V86 || window.V86Starter;
     if (!Emulator) {
         throw new Error('v86 failed to load');
     }
 
     const emulator = new Emulator(v86Config);
+    emulator.add_listener("emulator-loaded", async function() {
+        emulator.set_fda(dosImg);
+    });
+
     return emulator;
+}
+
+function downloadBytes(bytes, filename) {
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 const params = new URLSearchParams(location.search);
 const which = params.get('which') ?? null;
+const download = params.get('download') ?? null;
 
 start({
     screen: document.getElementById('screen_container'),
@@ -161,8 +175,9 @@ start({
     demosUrl: 'demos/demos.json',
     dosImgUrl: 'image/freedos.img',
     biosUrl: 'bios/bochs-bios.bin',
-    vgaBiosUrl: 'bios/bochs-vgabios.bin',
+    vgaBiosUrl: 'bios/vgabios.bin',
     stateUrl: 'image/v86state.bin',
     wasmUrl: 'v86/v86.wasm',
-    which
+    which,
+    download
 });
