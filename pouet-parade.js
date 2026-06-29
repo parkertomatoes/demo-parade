@@ -1,8 +1,11 @@
+const V86_VGA_COLOR_DEPTH_PORT = 0x926A;
+
 async function start(config) {
     const {
         screen,
         nav,
         demosUrl,
+        force32BitColorUrl,
         dosImgUrl,
         biosUrl,
         vgaBiosUrl,
@@ -25,18 +28,26 @@ async function start(config) {
         searchInput: nav.querySelector('.demoSearch input'),
         demoNameList: nav.querySelector('.demoSearch datalist')
     };
+    const saveStateMode = mode === 'save-state';
 
     // Load demo content
     const demoResponse = await fetch(demosUrl);
     const demos = await demoResponse.json();
+
+    const force32BitColorResponse = await fetch(force32BitColorUrl);
+    const force32BitColorDemos = await force32BitColorResponse.json();
+    const force32BitColorDemoIds = new Set(force32BitColorDemos.map(({ id }) => id));
 
     // Load DOS floppy image
     const dosImgResponse = await fetch(dosImgUrl);
     const baseDosImg = new Uint8Array(await dosImgResponse.arrayBuffer());
 
     // Keep a copy of the booted DOS state so demo changes do not need a page reload.
-    const stateResponse = await fetch(stateUrl);
-    const initialState = await stateResponse.arrayBuffer();
+    let initialState = null;
+    if (!saveStateMode) {
+        const stateResponse = await fetch(stateUrl);
+        initialState = await stateResponse.arrayBuffer();
+    }
 
     let currentDemo = null;
     let currentDosImg = null;
@@ -56,6 +67,11 @@ async function start(config) {
         return new Uint8Array(await contentResponse.arrayBuffer());
     }
 
+    function applyVgaColorDepth(demo) {
+        const force32BitColor = demo && force32BitColorDemoIds.has(demo.id);
+        emulator.v86.cpu.io.port_write8(V86_VGA_COLOR_DEPTH_PORT, force32BitColor ? 1 : 0);
+    }
+
     async function buildDosImage(demo) {
         const content = await getDemoContent(demo);
         const dosImg = new Uint8Array(baseDosImg);
@@ -68,12 +84,14 @@ async function start(config) {
     }
 
     function getRandomDemo() {
-        if (demos.length <= 1)
-            return demos[0];
+        const randomDemos = demos.filter(demo => !demo.name.includes('BBS'));
+        const candidates = randomDemos.length ? randomDemos : demos;
+        if (candidates.length <= 1)
+            return candidates[0];
 
         let demo;
         do {
-            demo = demos[(Math.random() * demos.length) | 0];
+            demo = candidates[(Math.random() * candidates.length) | 0];
         } while (currentDemo && demo.id === currentDemo.id);
         return demo;
     }
@@ -146,6 +164,7 @@ async function start(config) {
             await emulator.stop();
             await emulator.restore_state(initialState.slice(0));
             await emulator.set_fda(dosImg);
+            applyVgaColorDepth(demo);
             await emulator.run();
         }
 
@@ -153,6 +172,9 @@ async function start(config) {
     }
 
     function queueDemoSwitch(demo, options) {
+        if (saveStateMode)
+            return pendingDemoChange;
+
         pendingDemoChange = pendingDemoChange
             .then(() => switchDemo(demo, options))
             .catch(error => {
@@ -212,25 +234,35 @@ async function start(config) {
         });
     });
 
-    // Select the initial demo and replace RUN.COM before v86 starts.
-    let initialDemo = which ? getDemoById(which) : null;
-    if (which && !initialDemo) {
-        location.href = '.';
-        return null;
-    }
-    if (!initialDemo)
-        initialDemo = getRandomDemo();
+    if (saveStateMode) {
+        currentDosImg = new Uint8Array(baseDosImg);
+        setNavLink(elements.prevButton, null);
+        setNavLink(elements.nextButton, null);
+        elements.randButton.href = '#';
+        elements.randButton.querySelector('button').disabled = true;
+        elements.searchInput.disabled = true;
+        history.replaceState({ mode }, '', location.href);
+    } else {
+        // Select the initial demo and replace RUN.COM before v86 starts.
+        let initialDemo = which ? getDemoById(which) : null;
+        if (which && !initialDemo) {
+            location.href = '.';
+            return null;
+        }
+        if (!initialDemo)
+            initialDemo = getRandomDemo();
 
-    const initial = await switchDemo(initialDemo, {
-        updateHistory: false,
-        reloadEmulator: false
-    });
-    history.replaceState({ which: initialDemo.id }, '', location.href);
+        const initial = await switchDemo(initialDemo, {
+            updateHistory: false,
+            reloadEmulator: false
+        });
+        history.replaceState({ which: initialDemo.id }, '', location.href);
 
-    if (download === 'img') {
-        downloadBytes(initial.dosImg, `demo-${initialDemo.id}.img`);
-    } else if (download === 'com') {
-        downloadBytes(initial.content, `demo-${initialDemo.id}.com`);
+        if (download === 'img') {
+            downloadBytes(initial.dosImg, `demo-${initialDemo.id}.img`);
+        } else if (download === 'com') {
+            downloadBytes(initial.content, `demo-${initialDemo.id}.com`);
+        }
     }
 
     // Start emulator
@@ -244,16 +276,18 @@ async function start(config) {
         fda: {
             buffer: currentDosImg.buffer
         },
-        initial_state: {
-            buffer: initialState.slice(0)
-        },
         wasm_path: wasmUrl,
-        autostart: true,
+        autostart: false,
         screen: {
             container: screen,
             use_graphical_text: true
         }
     };
+    if (!saveStateMode) {
+        v86Config.initial_state = {
+            buffer: initialState.slice(0)
+        };
+    }
     const Emulator = window.V86 || window.V86Starter;
     if (!Emulator) {
         throw new Error('v86 failed to load');
@@ -261,11 +295,22 @@ async function start(config) {
 
     emulator = new Emulator(v86Config);
     emulator.add_listener("emulator-loaded", async function() {
-        emulator.v86.cpu.io.register_write(0x9269, async () => {
-            const state = await emulator.save_state();
-            downloadBytes(state, 'v86state.bin');
-        });
-        emulator.set_fda(currentDosImg);
+        if (saveStateMode) {
+            let stateSaved = false;
+            const saveStateDevice = { name: 'demo-parade-save-state' };
+            const saveState = async () => {
+                if (stateSaved)
+                    return;
+
+                stateSaved = true;
+                const state = await emulator.save_state();
+                downloadBytes(state, 'v86state.bin');
+            };
+            emulator.v86.cpu.io.register_write(0x9269, saveStateDevice, saveState, saveState, saveState);
+        }
+        await emulator.set_fda(currentDosImg);
+        applyVgaColorDepth(currentDemo);
+        await emulator.run();
     });
 
     return emulator;
@@ -292,6 +337,7 @@ start({
     screen: document.getElementById('screen_container'),
     nav: document.querySelector('nav'),
     demosUrl: 'demos/demos.json',
+    force32BitColorUrl: 'demos/force32bitColor.json',
     dosImgUrl: 'image/freedos.img',
     biosUrl: 'bios/bochs-bios.bin',
     vgaBiosUrl: 'bios/vgabios.bin',

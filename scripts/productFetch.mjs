@@ -4,6 +4,7 @@ import * as fs from 'fs/promises';
 import * as _7z from '7zip-min';
 import { promisify } from 'util';
 import { execFile as execFileCallback } from 'child_process';
+import { getProductFetchException } from './productFetchExceptions.mjs';
 const unpack = promisify(_7z.unpack);
 const execFile = promisify(execFileCallback);
 const MAX_COM_SIZE = 1024;
@@ -114,6 +115,15 @@ function isComFileName(fileName) {
 
 function isArchiveFileName(fileName) {
     return /\.(zip|rar|7z|arj|lha|lzh|tar|tgz|tbz2|txz|gz|bz2|xz)$/i.test(fileName);
+}
+
+function matchesPreferredComFileName(fileName, preferredFileName) {
+    if (!preferredFileName)
+        return false;
+
+    const expected = preferredFileName.toLowerCase();
+    const actual = fileName.split(path.sep).join('/').toLowerCase();
+    return actual === expected || path.basename(actual) === expected;
 }
 
 function stripKnownExtensions(fileName) {
@@ -294,10 +304,11 @@ async function extractArchive(archivePath, contentsPath) {
  * @param {Buffer} buffer Content of the downloaded file
  * @param {string} folder Temporary working directory
  * @param {(message: text) => void} log Function to log messages
+ * @param {object} fetchException Product-specific fetch exception
  * @param {number} depth Archive nesting depth
  * @param {boolean} allowRawCom Whether a small, non-archive file may be treated as a direct .com
  */
-async function findComContent(fileName, buffer, folder, log, depth = 0, allowRawCom = false) {
+async function findComContent(fileName, buffer, folder, log, fetchException = null, depth = 0, allowRawCom = false) {
     if (looksLikeHtml(buffer)) {
         log(`${fileName} appears to be an HTML file`);
         return null;
@@ -309,6 +320,10 @@ async function findComContent(fileName, buffer, folder, log, depth = 0, allowRaw
     }
 
     if (isComFileName(fileName)) {
+        if (fetchException?.comFileName && !matchesPreferredComFileName(fileName, fetchException.comFileName)) {
+            log(`${fileName} does not match preferred .com file ${fetchException.comFileName}`);
+            return null;
+        }
         if (buffer.length > MAX_COM_SIZE) {
             log(`${fileName} is larger than ${MAX_COM_SIZE} bytes`);
             return null;
@@ -342,6 +357,18 @@ async function findComContent(fileName, buffer, folder, log, depth = 0, allowRaw
     const extractedFiles = await walkFiles(contentsPath);
     const comCandidates = await getComCandidates(extractedFiles, contentsPath, fileName, log);
     if (comCandidates.length > 0) {
+        const preferredCandidate = fetchException?.comFileName
+            ? comCandidates.find(candidate => matchesPreferredComFileName(candidate.name, fetchException.comFileName))
+            : null;
+        if (fetchException?.comFileName) {
+            if (preferredCandidate === undefined) {
+                log(`Preferred .com file ${fetchException.comFileName} was not found`);
+                return null;
+            }
+            log(`Selected ${preferredCandidate.name} from product fetch exception`);
+            return readComFile(preferredCandidate.filePath, preferredCandidate.name, log);
+        }
+
         if (comCandidates.length > 1) {
             log(`Selected ${comCandidates[0].name} from ${comCandidates.length} .com candidates`);
         }
@@ -358,6 +385,7 @@ async function findComContent(fileName, buffer, folder, log, depth = 0, allowRaw
             await fs.readFile(filePath),
             folder,
             log,
+            fetchException,
             depth + 1,
             false
         );
@@ -376,6 +404,8 @@ async function findComContent(fileName, buffer, folder, log, depth = 0, allowRaw
  * @returns {object} A description of the product including its download, or null if not successful
  */
 export async function fetchProduct(product, log) {
+    const fetchException = getProductFetchException(product);
+
     // Download the product URL
     const downloadUrl = getDownloadUrl(product, log);
     const response = await fetchWithTlsFallback(downloadUrl, undefined, log);
@@ -407,6 +437,7 @@ export async function fetchProduct(product, log) {
             Buffer.from(await download.blob.arrayBuffer()),
             folder.path,
             log,
+            fetchException,
             0,
             true
         );

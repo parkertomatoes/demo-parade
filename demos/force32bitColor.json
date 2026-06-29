@@ -1,0 +1,22 @@
+[
+  {
+    "id": "96014",
+    "name": "balrog",
+    "reason": "Uses VBE mode 0x118 but writes four bytes per pixel."
+  },
+  {
+    "id": "94082",
+    "name": "circuli modulo",
+    "reason": "Uses a 24bpp VBE mode but writes four bytes per pixel."
+  },
+  {
+    "id": "94226",
+    "name": "Svampwurst",
+    "reason": "Uses a 24bpp VBE mode but writes four bytes per pixel."
+  },
+  {
+    "id": "95122",
+    "name": "The \"better than nothing\" transprent circles",
+    "reason": "Uses a 24bpp VBE mode but writes four bytes per pixel."
+  }
+]

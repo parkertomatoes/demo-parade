@@ -1,6 +1,8 @@
 import * as fs from 'fs/promises';
 import { cacheRead, cacheWrite } from './productCache.mjs'
 import { fetchProduct } from './productFetch.mjs'
+import { hasProductFetchException } from './productFetchExceptions.mjs'
+import { applyProductContentOverride } from './productContentOverrides.mjs'
 
 const ALLOWED_TYPES = ['32b', '64b', '128b', '256b', '512b', '1k'];
 
@@ -24,13 +26,15 @@ let successfulCount = 0;
 for (const product of candidates) {
     console.log(`ID: ${product.id}, Name: "${product.name}"`);
     try {
-        let productData = await cacheRead(product);
+        let productData = hasProductFetchException(product) ? null : await cacheRead(product);
         if (productData)
             logMessage(`read from cache`)
         else {
-            productData = await fetchProduct(product, logMessage);
+            productData = applyProductContentOverride(await fetchProduct(product, logMessage));
             await cacheWrite(product, productData);
         }
+
+        productData = applyProductContentOverride(productData);
 
         if (productData) {
             successfulCount++;
